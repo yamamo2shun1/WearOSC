@@ -12,7 +12,15 @@ This app can send the following touch gestures via the Open Sonud Control.
 The default settings are as follows.
 
 * Host Port = 8000
-* Remote IP = Broadcast Address
+* Remote IP = Broadcast Address in your connected Wi-Fi network.
 * Remote Port = 8080
 
-These values are changeable by 
+These values can be changed and confirmed by the following OSC messages.
+
+1. `/sys/host/ip/get`
+1. `/sys/host/port/set [port(int)]`
+1. `/sys/host/port/get`
+1. `/sys/remote/ip/set [ip(String)]`
+1. `/sys/remote/ip/get`
+1. `/sys/remote/port/set [port(int)]`
+1. `/sys/remote/port/get`
