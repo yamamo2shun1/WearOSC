@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with WearOSC. if not, see <http:/www.gnu.org/licenses/>.
  *
- * MainActivity.java, v.0.6.0 2015/12/04
+ * MainActivity.java, v.0.6.1 2015/12/06
  */
 
 package net.tkrworks.wearosc;
@@ -53,6 +53,8 @@ public class MainActivity extends WearableActivity {
   private int pointerMoveCount = 0;
   private boolean bStartFadeout = false;
   private float touchStateTextAlpha = 0.0f;
+  private float prevTouchX = 0.0f;
+  private float prevTouchY = 0.0f;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -327,7 +329,10 @@ public class MainActivity extends WearableActivity {
 
     switch(me.getActionMasked()) {
       case MotionEvent.ACTION_DOWN:
-        Log.d("DEBUG", "touch down...");
+        prevTouchX = me.getX();
+        prevTouchY = me.getY();
+
+        Log.d("DEBUG", "touch down..." + " " + me.getX() + " " + me.getY());
 
         if(multiTouchNum == ONE_FINGER_SINGLE_TAP) {
           multiTouchNum = ONE_FINGER_DOUBLE_TAP;
@@ -338,36 +343,18 @@ public class MainActivity extends WearableActivity {
         else
           multiTouchNum = ONE_FINGER_SINGLE_TAP;
 
-        final float touchPositionX = me.getX();
-        final float touchPositionY = me.getY();
-
-        /*
-        mHandler.postDelayed(new Runnable() {
-          @Override
-          public void run() {
-            if(multiTouchNum == TOUCH_NONE)
-              multiTouchNum = ONE_FINGER_SINGLE_TAP;
-
-            Log.d("DEBUG", "tap... " + multiTouchNum);
-            wosc.setOSCAddress("/wosc", "/touch");
-            wosc.setOSCTypeTag("ffi");
-            wosc.addOSCFloatArgument(touchPositionX);
-            wosc.addOSCFloatArgument(touchPositionY);
-            wosc.addOSCIntArgument(multiTouchNum);
-            wosc.flushOSCMessage();
-          }
-        }, 20);
-        */
-
         multiTouchNum = ONE_FINGER_SINGLE_TAP;
 
         Log.d("DEBUG", "tap... " + multiTouchNum);
+
+        /*
         wosc.setOSCAddress("/wosc", "/touch");
         wosc.setOSCTypeTag("ffi");
         wosc.addOSCFloatArgument(me.getX());
         wosc.addOSCFloatArgument(me.getY());
         wosc.addOSCIntArgument(multiTouchNum);
         wosc.flushOSCMessage();
+        */
 
         pointerMoveCount = 0;
         break;
@@ -379,14 +366,16 @@ public class MainActivity extends WearableActivity {
             multiTouchNum = TWO_FINGERS_SINGLE_TAP;
           else if (multiTouchNum == ONE_FINGER_SLIDE)
             multiTouchNum = TOUCH_NONE;
-          Log.d("DEBUG", "touch pointer down... " + multiTouchNum);
+          Log.d("DEBUG", "touch pointer down... " + multiTouchNum + " " + me.getX() + " " + me.getY());
 
+          /*
           wosc.setOSCAddress("/wosc", "/touch");
           wosc.setOSCTypeTag("ffi");
           wosc.addOSCFloatArgument(me.getX());
           wosc.addOSCFloatArgument(me.getY());
           wosc.addOSCIntArgument(multiTouchNum);
           wosc.flushOSCMessage();
+          */
 
           setTouchState(multiTouchNum);
 
@@ -395,30 +384,33 @@ public class MainActivity extends WearableActivity {
         }
         break;
       case MotionEvent.ACTION_MOVE:
-        //if(pointerMoveCount > 3) {
-        if(multiTouchNum != TOUCH_NONE) {
-          Log.d("DEBUG", "touch move... " + multiTouchNum);
+        if(Math.abs(prevTouchX - me.getX()) > 1.0 || Math.abs(prevTouchY - me.getY()) > 1.0) {
 
-          if(multiTouchNum == TWO_FINGERS_SINGLE_TAP || multiTouchNum == TWO_FINGERS_SLIDE)
-            multiTouchNum = TWO_FINGERS_SLIDE;
-          else
-            multiTouchNum = ONE_FINGER_SLIDE;
+          //if(pointerMoveCount > 3) {
+          if (multiTouchNum != TOUCH_NONE) {
+            Log.d("DEBUG", "touch move... " + multiTouchNum + " " + me.getX() + " " + me.getY());
 
-          wosc.setOSCAddress("/wosc", "/touch");
-          wosc.setOSCTypeTag("ffi");
-          wosc.addOSCFloatArgument(me.getX());
-          wosc.addOSCFloatArgument(me.getY());
-          wosc.addOSCIntArgument(multiTouchNum);
-          wosc.flushOSCMessage();
+            if (multiTouchNum == TWO_FINGERS_SINGLE_TAP || multiTouchNum == TWO_FINGERS_SLIDE)
+              multiTouchNum = TWO_FINGERS_SLIDE;
+            else
+              multiTouchNum = ONE_FINGER_SLIDE;
 
-          setTouchState(multiTouchNum);
+            wosc.setOSCAddress("/wosc", "/touch");
+            wosc.setOSCTypeTag("ffi");
+            wosc.addOSCFloatArgument(me.getX());
+            wosc.addOSCFloatArgument(me.getY());
+            wosc.addOSCIntArgument(multiTouchNum);
+            wosc.flushOSCMessage();
+
+            setTouchState(multiTouchNum);
+          }
+          //}
+
+          pointerMoveCount++;
         }
-        //}
-
-        pointerMoveCount++;
         break;
       case MotionEvent.ACTION_UP:
-        Log.d("DEBUG", "touch up...");
+        Log.d("DEBUG", "touch up... " + pointerMoveCount + " " + me.getX() + " " + me.getY());
 
         final float releasePositionX = me.getX();
         final float releasePositionY = me.getY();
@@ -431,7 +423,6 @@ public class MainActivity extends WearableActivity {
             @Override
             public void run() {
               Log.d("DEBUG", "release soon...");
-              multiTouchNum = TOUCH_NONE;
 
               wosc.setOSCAddress("/wosc", "/touch");
               wosc.setOSCTypeTag("ffi");
@@ -440,6 +431,7 @@ public class MainActivity extends WearableActivity {
               wosc.addOSCIntArgument(multiTouchNum);
               wosc.flushOSCMessage();
 
+              multiTouchNum = TOUCH_NONE;
               repeatTapNum = 0;
             }
           });
@@ -453,16 +445,24 @@ public class MainActivity extends WearableActivity {
             @Override
             public void run() {
               Log.d("DEBUG", "release... " + multiTouchNum + " " + repeatTapNum);
-              multiTouchNum = TOUCH_NONE;
-              if(repeatTapNum == 2)
-                prevMultiTouchNum = ONE_FINGER_DOUBLE_TAP;
 
               wosc.setOSCAddress("/wosc", "/touch");
               wosc.setOSCTypeTag("ffi");
               wosc.addOSCFloatArgument(releasePositionX);
               wosc.addOSCFloatArgument(releasePositionY);
-              wosc.addOSCIntArgument(multiTouchNum);
+              if(repeatTapNum == 2)
+                wosc.addOSCIntArgument(2);
+              else if(multiTouchNum == -1) {
+                prevMultiTouchNum = 1;
+                wosc.addOSCIntArgument(1);
+              }
+              else
+                wosc.addOSCIntArgument(multiTouchNum);
               wosc.flushOSCMessage();
+
+              multiTouchNum = TOUCH_NONE;
+              if(repeatTapNum == 2)
+                prevMultiTouchNum = ONE_FINGER_DOUBLE_TAP;
 
               setTouchState(multiTouchNum);
 
@@ -477,15 +477,15 @@ public class MainActivity extends WearableActivity {
         if(multiTouchNum != TOUCH_NONE) {
           Log.d("DEBUG", "touch pointer up...");
 
-          prevMultiTouchNum = multiTouchNum;
-          multiTouchNum = TOUCH_NONE;
-
           wosc.setOSCAddress("/wosc", "/touch");
           wosc.setOSCTypeTag("ffi");
           wosc.addOSCFloatArgument(me.getX());
           wosc.addOSCFloatArgument(me.getY());
           wosc.addOSCIntArgument(multiTouchNum);
           wosc.flushOSCMessage();
+
+          prevMultiTouchNum = multiTouchNum;
+          multiTouchNum = TOUCH_NONE;
 
           setTouchState(multiTouchNum);
 
